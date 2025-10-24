@@ -1,2 +1,2 @@
-# Otus-Anti-bryteforce
-Otus final project
+# OTUS-Anti-bryteforce
+OTUS final project for the Golang course.

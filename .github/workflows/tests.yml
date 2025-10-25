@@ -1,0 +1,43 @@
+# .github/workflows/ci.yml
+name: CI
+
+on: [push, pull_request]
+
+env:
+  GOLANG_VERSION: '1.23.x'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test_by_makefile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+          cache: true
+
+      - name: Lint
+        run: make lint
+
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test
+
+  # Опционально: Cобрается Docker-образ на CI (без пуша)
+  # docker_build:
+  #   runs-on: ubuntu-latest
+  #   needs: test_by_makefile
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Docker build
+  #       run: make docker-build

@@ -1,0 +1,53 @@
+' ==============================================
+' Anti-Bruteforce — Component Diagram
+' Описывает структуру модулей и связи в системе
+' ==============================================
+@startuml AntiBruteforceComponents
+skinparam componentStyle rectangle
+skinparam WrapWidth 180
+skinparam DefaultFontName Monospace
+
+package "Anti‑Bruteforce Service" {
+  [Transport: gRPC/HTTP]
+  [Application Service]
+  [Core: RateLimiter]
+  [CIDR Matcher]
+  [Cache: In‑Memory]
+  [Logger/Tracing/Metrics]
+
+  [Transport: gRPC/HTTP] --> [Application Service] : CheckAttempt(), ResetBuckets(), ManageLists()
+  [Application Service] --> [Core: RateLimiter] : allow(login, password, ip)
+  [Application Service] --> [CIDR Matcher] : check IP in black/white
+  [Application Service] --> [Logger/Tracing/Metrics]
+
+  [Core: RateLimiter] --> [Bucket Store]
+  [Core: RateLimiter] --> [Time Source]
+
+  [CIDR Matcher] --> [List Store]
+  [CIDR Matcher] --> [Cache: In‑Memory] : hot whitelist/blacklist
+  [Cache: In‑Memory] <-down- [Sub/Pub Listener] : invalidate/update
+}
+
+package "Infra" {
+  [PostgreSQL : lists]
+  [Redis : buckets]
+  [Redis Pub/Sub : lists updates]
+  [Config]
+  [Time Source]
+}
+
+[Bucket Store] --> [Redis : buckets]
+[List Store] --> [PostgreSQL : lists]
+[Sub/Pub Listener] --> [Redis Pub/Sub : lists updates]
+[Application Service] --> [Config]
+[Logger/Tracing/Metrics] ..> [Infra] : exporters
+
+package "External Clients" {
+  [Auth Service] as Client
+  [Admin CLI]
+}
+
+Client --> [Transport: gRPC/HTTP] : server‑to‑server API
+[Admin CLI] --> [Transport: gRPC/HTTP] : admin methods
+
+@enduml

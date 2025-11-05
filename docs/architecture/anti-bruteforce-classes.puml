@@ -1,0 +1,60 @@
+@startuml AntiBruteforceClasses
+skinparam DefaultFontName Monospace
+
+interface RateLimiter {
+  +Allow(ctx, login, password, ip) : bool
+  +Reset(ctx, login?, ip?)
+}
+
+interface BucketStore {
+  +AddAndCount(ctx, key, now, window) : int
+  +ResetByKeys(ctx, keys: []string)
+}
+
+interface ListStore {
+  +GetAll(ctx) : []Subnet
+  +Add(ctx, subnet, kind)
+  +Remove(ctx, subnet, kind)
+}
+
+class SlidingWindowLimiter implements RateLimiter {
+  -limits: Limits(N,M,K)
+  -store: BucketStore
+  -clock: Clock
+}
+
+class CidrMatcher {
+  -cache: Cache
+  -store: ListStore
+  +RefreshOnPubSub()
+  +Check(ip) : MatchResult
+}
+
+class ApplicationService {
+  -rl: RateLimiter
+  -cidr: CidrMatcher
+  -log: Logger
+  +CheckAttempt(login, password, ip) : bool
+  +ResetBuckets(login?, ip?)
+  +ListsCRUD(...)
+}
+
+class Cache {
+  +Get(kind): []Subnet
+  +Set(kind, data)
+}
+
+class Logger
+class Clock
+class Subnet {
+ -cidr: string 
+}
+
+ApplicationService --> RateLimiter
+ApplicationService --> CidrMatcher
+CidrMatcher --> Cache
+CidrMatcher --> ListStore
+SlidingWindowLimiter --> BucketStore
+SlidingWindowLimiter --> Clock
+
+@enduml

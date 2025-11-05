@@ -8,6 +8,7 @@ import (
 
 	"github.com/Alexandr-Snisarenko/Otus-Anti-bruteforce/internal/config"
 	"github.com/Alexandr-Snisarenko/Otus-Anti-bruteforce/internal/logger"
+	"github.com/Alexandr-Snisarenko/Otus-Anti-bruteforce/internal/version"
 )
 
 var configFile string
@@ -27,7 +28,7 @@ func run() error {
 	flag.Parse()
 
 	if flag.Arg(0) == "version" {
-		printVersion()
+		version.PrintVersion()
 		return nil
 	}
 

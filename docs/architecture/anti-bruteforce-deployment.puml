@@ -1,0 +1,38 @@
+@startuml AntiBruteforceDeployment
+skinparam nodesep 30
+skinparam ranksep 25
+skinparam DefaultFontName Monospace
+
+node "Kubernetes / Docker Host" {
+  node "Pod/Container: anti‑bruteforce" {
+    component "Service Binary\n(cmd/anti-bruteforce)" as bin
+    component "Transport (gRPC/HTTP)" as tr
+    component "App + Core" as app
+    component "Sub/Pub Listener" as sub
+    component "Metrics (Prom) / Tracing (OTel) / Logs (slog)" as obs
+
+    tr --> app
+    app ..> obs
+    sub --> app : cache invalidation
+  }
+
+  node "Container: redis" as redis {
+    database "Redis\n(buckets, pub/sub)" as rdb
+  }
+
+  node "Container: postgres" as pg {
+    database "PostgreSQL\n(whitelist/blacklist)" as pdb
+  }
+}
+
+actor "Auth Service" as auth
+actor "Admin CLI\n(cmd/abf)" as cli
+
+auth --> tr : CheckAttempt
+cli --> tr : Reset / Lists CRUD
+
+app --> rdb : ZINCRBY/ZREMRANGEBYSCORE\n(or script EVAL) for windows
+app --> pdb : SELECT/INSERT/DELETE subnets
+sub --> rdb : SUBSCRIBE lists_updates
+
+@enduml

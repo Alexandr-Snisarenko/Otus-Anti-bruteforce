@@ -1,7 +1,3 @@
-' ==============================================
-' Anti-Bruteforce — Component Diagram
-' Описывает структуру модулей и связи в системе
-' ==============================================
 @startuml AntiBruteforceComponents
 skinparam componentStyle rectangle
 skinparam WrapWidth 180
@@ -11,21 +7,19 @@ package "Anti‑Bruteforce Service" {
   [Transport: gRPC/HTTP]
   [Application Service]
   [Core: RateLimiter]
-  [CIDR Matcher]
-  [Cache: In‑Memory]
+  [SubnetList Matcher: In‑Memory]
   [Logger/Tracing/Metrics]
 
   [Transport: gRPC/HTTP] --> [Application Service] : CheckAttempt(), ResetBuckets(), ManageLists()
   [Application Service] --> [Core: RateLimiter] : allow(login, password, ip)
-  [Application Service] --> [CIDR Matcher] : check IP in black/white
+  [Application Service] -->  [SubnetList Matcher: In‑Memory] : check IP in black/white
+  [Application Service] --> [List Store] : manage IP in black/white
   [Application Service] --> [Logger/Tracing/Metrics]
 
   [Core: RateLimiter] --> [Bucket Store]
-  [Core: RateLimiter] --> [Time Source]
 
-  [CIDR Matcher] --> [List Store]
-  [CIDR Matcher] --> [Cache: In‑Memory] : hot whitelist/blacklist
-  [Cache: In‑Memory] <-down- [Sub/Pub Listener] : invalidate/update
+  [SubnetList Matcher: In‑Memory] <-down- [Sub/Pub Listener] : update lists
+  [SubnetList Matcher: In‑Memory] <-- [List Store] : load lists
 }
 
 package "Infra" {
@@ -37,7 +31,8 @@ package "Infra" {
 }
 
 [Bucket Store] --> [Redis : buckets]
-[List Store] --> [PostgreSQL : lists]
+[List Store] <--> [PostgreSQL : lists]
+[List Store] --> [Redis Pub/Sub : lists updates] : publish updates
 [Sub/Pub Listener] --> [Redis Pub/Sub : lists updates]
 [Application Service] --> [Config]
 [Logger/Tracing/Metrics] ..> [Infra] : exporters

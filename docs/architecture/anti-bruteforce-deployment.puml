@@ -3,13 +3,12 @@ skinparam nodesep 30
 skinparam ranksep 25
 skinparam DefaultFontName Monospace
 
-node "Kubernetes / Docker Host" {
-  node "Pod/Container: anti‑bruteforce" {
-    component "Service Binary\n(cmd/anti-bruteforce)" as bin
+node "Docker Host" {
+  node "Container: anti‑bruteforce" {
     component "Transport (gRPC/HTTP)" as tr
     component "App + Core" as app
     component "Sub/Pub Listener" as sub
-    component "Metrics (Prom) / Tracing (OTel) / Logs (slog)" as obs
+    component "Tracing / Logs" as obs
 
     tr --> app
     app ..> obs
@@ -29,9 +28,9 @@ actor "Auth Service" as auth
 actor "Admin CLI\n(cmd/abf)" as cli
 
 auth --> tr : CheckAttempt
-cli --> tr : Reset / Lists CRUD
+cli --> tr : Reset Buckets / Lists CRUD
 
-app --> rdb : ZINCRBY/ZREMRANGEBYSCORE\n(or script EVAL) for windows
+app --> rdb : ZADD / ZCARD / ZREMRANGEBYSCORE
 app --> pdb : SELECT/INSERT/DELETE subnets
 sub --> rdb : SUBSCRIBE lists_updates
 

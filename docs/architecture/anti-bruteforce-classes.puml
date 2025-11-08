@@ -1,60 +1,71 @@
 @startuml AntiBruteforceClasses
 skinparam DefaultFontName Monospace
 
-interface RateLimiter {
-  +Allow(ctx, login, password, ip) : bool
-  +Reset(ctx, login?, ip?)
+interface LimiterRepo {
+  +Allow(ctx, key string, limit int, window time.Duration) : bool, error
+  +Reset(ctx, key string): error
 }
 
-interface BucketStore {
-  +AddAndCount(ctx, key, now, window) : int
-  +ResetByKeys(ctx, keys: []string)
+interface SubnetRepo {
+  +GetSubnetLists(ctx, listType string) ([]string, error)
+	+SaveSubnetList(ctx, listType string, cidrs []string) error
+	+ClearSubnetList(ctx, listType string) error
+	+AddCIDRToSubnetList(ctx, listType string, cidr string) error
+	+RemoveCIDRFromSubnetList(ctx, listType string, cidr string) error
 }
 
-interface ListStore {
-  +GetAll(ctx) : []Subnet
-  +Add(ctx, subnet, kind)
-  +Remove(ctx, subnet, kind)
+class Rule{
+  -limit: int
+  -window: time.Duration
 }
 
-class SlidingWindowLimiter implements RateLimiter {
-  -limits: Limits(N,M,K)
-  -store: BucketStore
-  -clock: Clock
+class Limiter{
+  -storage: LimiterRepo
+  -limitType: string
+  -rule: Rule
+  +Allow(ctx, key string) : bool, error
+  +Reset(ctx, key string) : error
 }
 
-class CidrMatcher {
-  -cache: Cache
-  -store: ListStore
-  +RefreshOnPubSub()
-  +Check(ip) : MatchResult
+class SubnetList{
+  -nets map[string]*net.IPNet
+  +Load(ctx, listType string) : error
+  +Add(cidr string) : error
+  +Remove(cidr string) : error
+  +Contains(ip string) : bool
+  +Clear() : error
 }
 
-class ApplicationService {
-  -rl: RateLimiter
-  -cidr: CidrMatcher
-  -log: Logger
-  +CheckAttempt(login, password, ip) : bool
-  +ResetBuckets(login?, ip?)
-  +ListsCRUD(...)
+class ApplicationService{
+  -limiter: Limiter
+  -subnetWList: SubnetList
+  -subnetBList: SubnetList
+  -listStore: SubnetRepo
+  -logger: Logger
+  +CheckAttempt(ctx, login, password, ip string) : bool, error
+  +ResetBucket(ctx, key string) : error
+  +ManageSubnetList(ctx, action, listType, cidr string) : error
 }
 
-class Cache {
-  +Get(kind): []Subnet
-  +Set(kind, data)
+class SlidingWindowLimiter implements LimiterRepo {
+  -redisClient: *redis.Client
+  +Allow(ctx, key string, limit int, window time.Duration) : bool, error
+  +Reset(ctx, key string) : error
 }
+
+class CidrMatcher implements SubnetRepo {
+  -db: *sql.DB
+  +GetSubnetLists(ctx, listType string) ([]string, error)
+  +SaveSubnetList(ctx, listType string, cidrs []string) error
+  +ClearSubnetList(ctx, listType string) error
+  +AddCIDRToSubnetList(ctx, listType string, cidr string) error
+  +RemoveCIDRFromSubnetList(ctx, listType string, cidr string) error
+} 
 
 class Logger
-class Clock
-class Subnet {
- -cidr: string 
-}
 
-ApplicationService --> RateLimiter
+ApplicationService --> SlidingWindowLimiter
 ApplicationService --> CidrMatcher
-CidrMatcher --> Cache
-CidrMatcher --> ListStore
-SlidingWindowLimiter --> BucketStore
-SlidingWindowLimiter --> Clock
+ApplicationService --> Logger
 
 @enduml

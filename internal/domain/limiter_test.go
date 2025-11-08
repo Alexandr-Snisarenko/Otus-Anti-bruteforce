@@ -1,4 +1,4 @@
-package ratelimit
+package domain
 
 import (
 	"context"
@@ -71,7 +71,8 @@ func TestLimiter_BasicFlow(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db := memory.NewInMemoryDB()
-			l := NewInMemoryLimiter(db, "test-key", tt.rule)
+			key := "test-key"
+			l := NewLimiter(db, "test-bucket", tt.rule)
 			ctx := context.Background()
 
 			allowed := 0
@@ -80,7 +81,7 @@ func TestLimiter_BasicFlow(t *testing.T) {
 
 			// Make attempts
 			for i := 0; i < tt.attempts; i++ {
-				lastAllow, lastErr = l.Allow(ctx)
+				lastAllow, lastErr = l.Allow(ctx, key)
 				if lastErr != nil {
 					t.Fatalf("attempt %d: unexpected error: %v", i+1, lastErr)
 				}
@@ -105,23 +106,24 @@ func TestLimiter_SlidingWindow(t *testing.T) {
 		Limit:  2,
 		Window: 100 * time.Millisecond,
 	}
-	l := NewInMemoryLimiter(db, "sliding-key", rule)
+	key := "sliding-key"
+	l := NewLimiter(db, "sliding-bucket", rule)
 	ctx := context.Background()
 
 	// First attempt should be allowed
-	allow, err := l.Allow(ctx)
+	allow, err := l.Allow(ctx, key)
 	if err != nil || !allow {
 		t.Fatalf("first attempt: got allow=%v err=%v, want allow=true err=nil", allow, err)
 	}
 
 	// Second attempt should be allowed
-	allow, err = l.Allow(ctx)
+	allow, err = l.Allow(ctx, key)
 	if err != nil || !allow {
 		t.Fatalf("second attempt: got allow=%v err=%v, want allow=true err=nil", allow, err)
 	}
 
 	// Third attempt should be rejected (limit reached)
-	allow, err = l.Allow(ctx)
+	allow, err = l.Allow(ctx, key)
 	if err != nil || allow {
 		t.Fatalf("third attempt: got allow=%v err=%v, want allow=false err=nil", allow, err)
 	}
@@ -130,7 +132,7 @@ func TestLimiter_SlidingWindow(t *testing.T) {
 	time.Sleep(rule.Window + 10*time.Millisecond)
 
 	// Should allow one more attempt now
-	allow, err = l.Allow(ctx)
+	allow, err = l.Allow(ctx, key)
 	if err != nil || !allow {
 		t.Fatalf("after window: got allow=%v err=%v, want allow=true err=nil", allow, err)
 	}
@@ -142,29 +144,30 @@ func TestLimiter_Reset(t *testing.T) {
 		Limit:  2,
 		Window: time.Minute,
 	}
-	l := NewInMemoryLimiter(db, "reset-key", rule)
+	key := "reset-key"
+	l := NewLimiter(db, "reset-bucket", rule)
 	ctx := context.Background()
 
 	// Up the limit
 	for i := 0; i < rule.Limit; i++ {
-		allow, err := l.Allow(ctx)
+		allow, err := l.Allow(ctx, key)
 		if err != nil || !allow {
 			t.Fatalf("attempt %d: got allow=%v err=%v, want allow=true err=nil", i+1, allow, err)
 		}
 	}
 
 	// Next attempt should be rejected
-	if allow, err := l.Allow(ctx); err != nil || allow {
+	if allow, err := l.Allow(ctx, key); err != nil || allow {
 		t.Fatalf("over-limit: got allow=%v err=%v, want allow=false err=nil", allow, err)
 	}
 
 	// Reset should clear the limit
-	if err := l.Reset(ctx); err != nil {
+	if err := l.Reset(ctx, key); err != nil {
 		t.Fatalf("reset: unexpected error: %v", err)
 	}
 
 	// Should be allowed again after reset
-	if allow, err := l.Allow(ctx); err != nil || !allow {
+	if allow, err := l.Allow(ctx, key); err != nil || !allow {
 		t.Fatalf("after reset: got allow=%v err=%v, want allow=true err=nil", allow, err)
 	}
 }
@@ -176,27 +179,28 @@ func TestLimiter_MultipleKeysIsolation(t *testing.T) {
 		Window: time.Second,
 	}
 
-	// Create two limiters with different keys
-	l1 := NewInMemoryLimiter(db, "key1", rule)
-	l2 := NewInMemoryLimiter(db, "key2", rule)
+	// Create two limiters with different buckets
+	key := "multi-key"
+	l1 := NewLimiter(db, "bucket1", rule)
+	l2 := NewLimiter(db, "bucket2", rule)
 	ctx := context.Background()
 
 	// Up first limiter
 	for i := 0; i < rule.Limit; i++ {
-		allow, err := l1.Allow(ctx)
+		allow, err := l1.Allow(ctx, key)
 		if err != nil || !allow {
 			t.Fatalf("l1 attempt %d: got allow=%v err=%v, want allow=true err=nil", i+1, allow, err)
 		}
 	}
 
 	// First limiter should be blocked
-	if allow, err := l1.Allow(ctx); err != nil || allow {
+	if allow, err := l1.Allow(ctx, key); err != nil || allow {
 		t.Fatalf("l1 over-limit: got allow=%v err=%v, want allow=false err=nil", allow, err)
 	}
 
 	// Second limiter should still allow attempts
 	for i := 0; i < rule.Limit; i++ {
-		allow, err := l2.Allow(ctx)
+		allow, err := l2.Allow(ctx, key)
 		if err != nil || !allow {
 			t.Fatalf("l2 attempt %d: got allow=%v err=%v, want allow=true err=nil", i+1, allow, err)
 		}

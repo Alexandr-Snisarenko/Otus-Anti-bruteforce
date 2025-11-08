@@ -1,13 +1,13 @@
-package ratelimit
+package domain
 
 import (
 	"context"
 	"time"
 )
 
-// LimiterStorage — абстракция ограничения.
+// LimiterRepo — абстракция ограничения.
 // Важно: реализация должна быть атомарной в разрезе одного key.
-type LimiterStorage interface {
+type LimiterRepo interface {
 	// Allow применяет скользящее окно к ОДНОМУ ключу.
 	Allow(ctx context.Context, key string, limit int, window time.Duration) (bool, error)
 	// Reset очищает окно для ключа (для метода "сброс bucket").

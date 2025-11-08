@@ -1,4 +1,4 @@
-package iplist
+package domain
 
 import (
 	"errors"

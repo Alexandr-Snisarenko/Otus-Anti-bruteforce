@@ -1,4 +1,4 @@
-package domain
+package subnetlist
 
 import (
 	"context"
@@ -11,7 +11,7 @@ type SubnetList struct {
 	nets map[string]*net.IPNet
 }
 
-func NewSubnetList() *SubnetList {
+func NewMatcher() *SubnetList {
 	return &SubnetList{nets: make(map[string]*net.IPNet)}
 }
 

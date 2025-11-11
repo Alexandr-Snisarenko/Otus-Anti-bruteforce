@@ -1,4 +1,4 @@
-package domain
+package subnetlist
 
 import (
 	"errors"
@@ -46,7 +46,7 @@ func TestIsIPInList_Table(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			list := NewSubnetList()
+			list := NewMatcher()
 			for _, cidr := range tc.CIDRs {
 				err := list.Add(cidr)
 				if err != nil && !errors.Is(err, tc.err) {
@@ -91,7 +91,7 @@ func TestAdd_InvalidCIDR(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			list := NewSubnetList()
+			list := NewMatcher()
 			err := list.Add(tc.CIDR)
 			if err == nil {
 				t.Fatalf("expected error for invalid CIDR, got nil")

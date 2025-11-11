@@ -1,0 +1,24 @@
+@startuml
+title Anti-Bruteforce — Data Flow Diagram
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam arrowThickness 1.0
+skinparam rectangleFontSize 14
+skinparam databaseFontSize 13
+
+rectangle "Client (Auth Service)" as Client
+rectangle "gRPC API" as API
+rectangle "App Layer" as App
+rectangle "Core: RateLimit" as RL
+rectangle "Core: SubnetList" as SL
+database "Redis (Sliding Window)" as Redis
+database "PostgreSQL (Subnets)" as PG
+
+Client --> API : CheckAttempt()
+API --> App
+App --> SL : check whitelist/blacklist
+App --> RL : check rate limits
+RL --> Redis
+SL --> PG
+@enduml

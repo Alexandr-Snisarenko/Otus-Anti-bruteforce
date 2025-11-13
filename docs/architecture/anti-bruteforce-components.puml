@@ -1,0 +1,48 @@
+@startuml AntiBruteforceComponents
+skinparam componentStyle rectangle
+skinparam WrapWidth 180
+skinparam DefaultFontName Monospace
+
+package "Anti‑Bruteforce Service" {
+  [Transport: gRPC/HTTP]
+  [Application Service]
+  [Core: RateLimiter]
+  [SubnetList Matcher: In‑Memory]
+  [Logger/Tracing/Metrics]
+
+  [Transport: gRPC/HTTP] --> [Application Service] : CheckAttempt(), ResetBuckets(), ManageLists()
+  [Application Service] --> [Core: RateLimiter] : allow(login, password, ip)
+  [Application Service] -->  [SubnetList Matcher: In‑Memory] : check IP in black/white
+  [Application Service] --> [List Store] : manage IP in black/white
+  [Application Service] --> [Logger/Tracing/Metrics]
+
+  [Core: RateLimiter] --> [Bucket Store]
+
+  [SubnetList Matcher: In‑Memory] <-down- [Sub/Pub Listener] : update lists
+  [SubnetList Matcher: In‑Memory] <-- [List Store] : load lists
+}
+
+package "Infra" {
+  [PostgreSQL : lists]
+  [Redis : buckets]
+  [Redis Pub/Sub : lists updates]
+  [Config]
+  [Time Source]
+}
+
+[Bucket Store] --> [Redis : buckets]
+[List Store] <--> [PostgreSQL : lists]
+[List Store] --> [Redis Pub/Sub : lists updates] : publish updates
+[Sub/Pub Listener] --> [Redis Pub/Sub : lists updates]
+[Application Service] --> [Config]
+[Logger/Tracing/Metrics] ..> [Infra] : exporters
+
+package "External Clients" {
+  [Auth Service] as Client
+  [Admin CLI]
+}
+
+Client --> [Transport: gRPC/HTTP] : server‑to‑server API
+[Admin CLI] --> [Transport: gRPC/HTTP] : admin methods
+
+@enduml

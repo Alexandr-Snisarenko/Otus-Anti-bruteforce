@@ -1,0 +1,71 @@
+@startuml AntiBruteforceClasses
+skinparam DefaultFontName Monospace
+
+interface LimiterRepo {
+  +Allow(ctx, key string, limit int, window time.Duration) : bool, error
+  +Reset(ctx, key string): error
+}
+
+interface SubnetRepo {
+  +GetSubnetLists(ctx, listType string) ([]string, error)
+	+SaveSubnetList(ctx, listType string, cidrs []string) error
+	+ClearSubnetList(ctx, listType string) error
+	+AddCIDRToSubnetList(ctx, listType string, cidr string) error
+	+RemoveCIDRFromSubnetList(ctx, listType string, cidr string) error
+}
+
+class Rule{
+  -limit: int
+  -window: time.Duration
+}
+
+class Limiter{
+  -storage: LimiterRepo
+  -limitType: string
+  -rule: Rule
+  +Allow(ctx, key string) : bool, error
+  +Reset(ctx, key string) : error
+}
+
+class SubnetList{
+  -nets map[string]*net.IPNet
+  +Load(ctx, listType string) : error
+  +Add(cidr string) : error
+  +Remove(cidr string) : error
+  +Contains(ip string) : bool
+  +Clear() : error
+}
+
+class ApplicationService{
+  -limiter: Limiter
+  -subnetWList: SubnetList
+  -subnetBList: SubnetList
+  -listStore: SubnetRepo
+  -logger: Logger
+  +CheckAttempt(ctx, login, password, ip string) : bool, error
+  +ResetBucket(ctx, key string) : error
+  +ManageSubnetList(ctx, action, listType, cidr string) : error
+}
+
+class SlidingWindowLimiter implements LimiterRepo {
+  -redisClient: *redis.Client
+  +Allow(ctx, key string, limit int, window time.Duration) : bool, error
+  +Reset(ctx, key string) : error
+}
+
+class CidrMatcher implements SubnetRepo {
+  -db: *sql.DB
+  +GetSubnetLists(ctx, listType string) ([]string, error)
+  +SaveSubnetList(ctx, listType string, cidrs []string) error
+  +ClearSubnetList(ctx, listType string) error
+  +AddCIDRToSubnetList(ctx, listType string, cidr string) error
+  +RemoveCIDRFromSubnetList(ctx, listType string, cidr string) error
+} 
+
+class Logger
+
+ApplicationService --> SlidingWindowLimiter
+ApplicationService --> CidrMatcher
+ApplicationService --> Logger
+
+@enduml

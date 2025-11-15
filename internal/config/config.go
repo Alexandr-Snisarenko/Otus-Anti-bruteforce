@@ -16,6 +16,13 @@ type App struct {
 	Name string `mapstructure:"name"`
 }
 
+type Limits struct {
+	LoginAttempts    int           `mapstructure:"login_attempts"`
+	PasswordAttempts int           `mapstructure:"password_attempts"`
+	IPAttempts       int           `mapstructure:"ip_attempts"`
+	Window           time.Duration `mapstructure:"window"`
+}
+
 type Server struct {
 	Address string `mapstructure:"address"`
 	Port    int    `mapstructure:"port"`
@@ -32,7 +39,7 @@ type Logger struct {
 }
 
 type Database struct {
-	Workmode   string `mapstructure:"workmode"` // Режим работы memory или postgresql по умолчанию - memory
+	Workmode   string `mapstructure:"workmode"` // Режим работы memory или postgresql по умолчанию - postgresql
 	Postgresql struct {
 		// Параметры подключения могут задаваться либо в dsn, либо, если dsn не задан в следующих полях
 		Dsn string `mapstructure:"dsn"`
@@ -58,6 +65,7 @@ type Database struct {
 
 type Config struct {
 	App      App      `mapstructure:"app"`
+	Limits   Limits   `mapstructure:"limits"`
 	Server   Server   `mapstructure:"server"`
 	Logger   Logger   `mapstructure:"logger"`
 	Database Database `mapstructure:"database"`
@@ -73,13 +81,17 @@ func fileExists(path string) bool {
 
 func setDefaults(v *viper.Viper) {
 	// Дефолты
-	v.SetDefault("database.workmode", "memory")
+	v.SetDefault("database.workmode", "postgresql")
 	v.SetDefault("database.postgresql.pool.max_open_conns", 20)
 	v.SetDefault("database.postgresql.pool.max_idle_conns", 10)
 	v.SetDefault("database.postgresql.pool.conn_max_lifetime", "1h")
 	v.SetDefault("database.postgresql.pool.conn_max_idle_time", "10m")
 	v.SetDefault("server.port", 8080)
 	v.SetDefault("logger.level", "info")
+	v.SetDefault("limits.login_attempts", 10)
+	v.SetDefault("limits.password_attempts", 100)
+	v.SetDefault("limits.ip_attempts", 1000)
+	v.SetDefault("limits.window", "1m")
 
 	// Бинды/ для работы без файла конфигурациии без дефолтов, или с нестандартными ключами окружения
 	// _ = v.BindEnv("logger.level", "MYCALENDAR_LOGGER__LEVEL")
@@ -88,8 +100,8 @@ func setDefaults(v *viper.Viper) {
 func LoadConfig(cfgFilePath string) (*Config, error) {
 	v := viper.New()
 
-	// ENV с префиксом MYCALENDAR
-	v.SetEnvPrefix("MYCALENDAR")
+	// ENV с префиксом RATE_LIMITER
+	v.SetEnvPrefix("RATE_LIMITER")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "__", "-", "_"))
 	v.AutomaticEnv()
 

@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// InMemoryDB — простая in-memory реализация скользящего окна.
-type InMemoryDB struct {
+// BucketsDB — простая in-memory реализация скользящего окна.
+type BucketsDB struct {
 	mu   sync.RWMutex
 	data map[string]*timeline
 }
@@ -17,14 +17,14 @@ type timeline struct {
 	times []int64 // список попыток (уникальных записей - время попытки в миллисекундах)
 }
 
-// NewInMemoryDB возвращает новую in-memory реализацию.
-func NewInMemoryDB() *InMemoryDB {
-	return &InMemoryDB{
+// NewBucketsDB возвращает новую in-memory реализацию.
+func NewBucketsDB() *BucketsDB {
+	return &BucketsDB{
 		data: make(map[string]*timeline),
 	}
 }
 
-func (l *InMemoryDB) getTimeline(key string) *timeline {
+func (l *BucketsDB) getTimeline(key string) *timeline {
 	l.mu.RLock()
 	tl := l.data[key]
 	l.mu.RUnlock()
@@ -43,7 +43,7 @@ func (l *InMemoryDB) getTimeline(key string) *timeline {
 }
 
 // Allow — возвращает true, если попытка разрешена (в пределах лимита).
-func (l *InMemoryDB) Allow(_ context.Context, key string, limit int, window time.Duration) (bool, error) {
+func (l *BucketsDB) Allow(_ context.Context, key string, limit int, window time.Duration) (bool, error) {
 	if limit <= 0 {
 		return false, nil
 	}
@@ -79,7 +79,7 @@ func (l *InMemoryDB) Allow(_ context.Context, key string, limit int, window time
 }
 
 // Reset — сбрасывает все попытки по ключу.
-func (l *InMemoryDB) Reset(_ context.Context, key string) error {
+func (l *BucketsDB) Reset(_ context.Context, key string) error {
 	l.mu.RLock()
 	tl := l.data[key]
 	l.mu.RUnlock()

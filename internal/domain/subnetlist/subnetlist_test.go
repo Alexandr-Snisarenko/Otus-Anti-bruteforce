@@ -3,6 +3,8 @@ package subnetlist
 import (
 	"errors"
 	"testing"
+
+	"github.com/Alexandr-Snisarenko/Otus-Anti-bruteforce/internal/domain"
 )
 
 func TestIsIPInList_Table(t *testing.T) {
@@ -46,7 +48,7 @@ func TestIsIPInList_Table(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			list := NewMatcher()
+			list := NewSubnetList(domain.Whitelist)
 			for _, cidr := range tc.CIDRs {
 				err := list.Add(cidr)
 				if err != nil && !errors.Is(err, tc.err) {
@@ -91,7 +93,7 @@ func TestAdd_InvalidCIDR(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			list := NewMatcher()
+			list := NewSubnetList(domain.Whitelist)
 			err := list.Add(tc.CIDR)
 			if err == nil {
 				t.Fatalf("expected error for invalid CIDR, got nil")

@@ -55,10 +55,16 @@ version: build
 test:
 	go test ./...
 
+test-race:
+	go test -race -count=100 -v ./...
+
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.63.4
 
 lint: install-lint-deps
 	golangci-lint run ./...
+
+docs:
+	plantuml -tpng docs/architecture/*.puml -o ../generated/docs/architecture/	
 
 .PHONY: build run build-img run-img version test lint generate-openapi

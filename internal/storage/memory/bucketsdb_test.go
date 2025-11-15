@@ -9,7 +9,7 @@ import (
 )
 
 func TestAllow_BasicSlidingWindow(t *testing.T) {
-	db := NewInMemoryDB()
+	db := NewBucketsDB()
 	ctx := context.Background()
 
 	// limit 3 attempts per 100ms window
@@ -44,7 +44,7 @@ func TestAllow_BasicSlidingWindow(t *testing.T) {
 }
 
 func TestAllow_EdgeCases(t *testing.T) {
-	db := NewInMemoryDB()
+	db := NewBucketsDB()
 	ctx := context.Background()
 
 	// limit <= 0 -> always false
@@ -62,7 +62,7 @@ func TestAllow_EdgeCases(t *testing.T) {
 }
 
 func TestReset_ClearsTimeline(t *testing.T) {
-	db := NewInMemoryDB()
+	db := NewBucketsDB()
 	ctx := context.Background()
 
 	key := "reset-key"
@@ -94,7 +94,7 @@ func TestReset_ClearsTimeline(t *testing.T) {
 }
 
 func TestAllow_Concurrency(t *testing.T) {
-	db := NewInMemoryDB()
+	db := NewBucketsDB()
 	ctx := context.Background()
 
 	key := "concurrent"

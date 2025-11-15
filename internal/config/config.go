@@ -94,14 +94,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("limits.window", "1m")
 
 	// Бинды/ для работы без файла конфигурациии без дефолтов, или с нестандартными ключами окружения
-	// _ = v.BindEnv("logger.level", "MYCALENDAR_LOGGER__LEVEL")
+	// _ = v.BindEnv("logger.level", "RATELIMITER_LOGGER__LEVEL")
 }
 
 func LoadConfig(cfgFilePath string) (*Config, error) {
 	v := viper.New()
 
-	// ENV с префиксом RATE_LIMITER
-	v.SetEnvPrefix("RATE_LIMITER")
+	// ENV с префиксом RATELIMITER
+	v.SetEnvPrefix("RATELIMITER")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "__", "-", "_"))
 	v.AutomaticEnv()
 

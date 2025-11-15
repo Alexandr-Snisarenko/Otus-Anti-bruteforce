@@ -85,12 +85,13 @@ func TestLoadConfig_EnvOverride_DSN(t *testing.T) {
 	// Пустой файл, всё переопределим ENV
 	// logger.level в файле не задан. для связки с переменной окружения в вайпере используется defoult
 	dir := t.TempDir()
+
 	cfgPath := writeTempFile(t, dir, "config.yaml", "database: { workmode: postgresql, postgresql: { dsn: \"\" } }")
 
-	// ENV: MYCALENDAR_DATABASE__POSTGRESQL__DSN
-	t.Setenv("MYCALENDAR_DATABASE__POSTGRESQL__DSN", "postgres://u:p@db:5432/x?sslmode=disable")
-	t.Setenv("MYCALENDAR_LOGGER__LEVEL", "debug")
-	t.Setenv("MYCALENDAR_SERVER__PORT", "9090")
+	// ENV: RATELIMITER_DATABASE__POSTGRESQL__DSN
+	t.Setenv("RATELIMITER_DATABASE__POSTGRESQL__DSN", "postgres://u:p@db:5432/x?sslmode=disable")
+	t.Setenv("RATELIMITER_LOGGER__LEVEL", "debug")
+	t.Setenv("RATELIMITER_SERVER__PORT", "9090")
 
 	cfg, err := LoadConfig(cfgPath)
 	if err != nil {

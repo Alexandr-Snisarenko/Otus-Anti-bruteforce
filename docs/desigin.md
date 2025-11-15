@@ -118,19 +118,16 @@ rl:ip:{ip}
 ### 4.4 Работа со списками
 **Таблица PostgreSQL:**
 ```sql
-CREATE TABLE whitelist_subnets (
-  cidr CIDR PRIMARY KEY,
-  comment TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE subnets (
+  CIDR TEXT NOT NULL,
+  LIST_TYPE TEXT NOT NULL,
+  COMMENT TEXT,
+  DC TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (CIDR, LIST_TYPE)
 );
 
-CREATE TABLE blacklist_subnets (
-  cidr CIDR PRIMARY KEY,
-  comment TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 ```
-**Приоритет:** whitelist > blacklist.  
+**Предполагаются типы:** whitelist, blacklist.  
 **Типы:** IPv4, CIDR-нотация `192.1.1.0/25`.
 
 ---
